@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TMRW — FI Inspection Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #E8C547; --gold-dim: #c9a93a; --black: #1A1A1A; --black-soft: #2d2d2d;
+    --white: #ffffff; --off-white: #f7f5f0; --surface: #f2f0eb;
+    --border: rgba(26,26,26,0.1); --border-strong: rgba(26,26,26,0.2);
+    --text-primary: #1A1A1A; --text-secondary: #6b6660; --text-muted: #9c9690;
+    --pass: #1e8c2e; --pass-bg: #d4edda; --fail: #c0392b; --fail-bg: #fde8e8;
+    --pending: #b07d00; --pending-bg: #fef3cd;
+    --radius-md: 8px; --radius-lg: 14px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06);
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--off-white); color: var(--text-primary); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  .topbar { background: var(--black); padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo { width: 36px; height: 36px; border: 1.5px solid var(--gold); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .brand-logo span { font-family: 'Space Grotesk', sans-serif; color: var(--gold); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  .brand-name { font-family: 'Space Grotesk', sans-serif; color: var(--white); font-size: 15px; font-weight: 500; }
+  .brand-divider { color: #444; margin: 0 2px; }
+  .brand-sub { color: #888; font-size: 13px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .live-badge { display: flex; align-items: center; gap: 5px; background: rgba(232,197,71,0.12); border: 1px solid rgba(232,197,71,0.3); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--gold); font-weight: 500; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .date-badge { color: #666; font-size: 12px; }
+
+  .main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; }
+  .page-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; }
+  .page-sub { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn { padding: 8px 16px; border-radius: var(--radius-md); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+  .btn-primary { background: var(--black); color: var(--gold); border: 1px solid var(--black); }
+  .btn-primary:hover { background: var(--black-soft); }
+  .btn-ghost { background: var(--white); color: var(--text-primary); border: 1px solid var(--border-strong); }
+  .btn-ghost:hover { background: var(--surface); }
+
+  .appsheet-bar { background: var(--black); border-radius: var(--radius-lg); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; }
+  .appsheet-bar-text h3 { font-size: 14px; font-weight: 500; color: var(--white); font-family: 'Space Grotesk', sans-serif; }
+  .appsheet-bar-text p { font-size: 12px; color: #888; margin-top: 2px; }
+  .btn-gold { background: var(--gold); color: var(--black); border: none; font-weight: 600; }
+  .btn-gold:hover { background: var(--gold-dim); }
+
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+  .filter-chip { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--white); color: var(--text-secondary); font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.12s; }
+  .filter-chip:hover { background: var(--surface); }
+  .filter-chip.active { background: var(--black); color: var(--gold); border-color: var(--black); }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow); transition: box-shadow 0.15s; }
+  .metric:hover { box-shadow: var(--shadow-md); }
+  .metric.hero { background: var(--black); border-color: transparent; }
+  .metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 8px; }
+  .metric.hero .metric-label { color: #6b5f2a; }
+  .metric-val { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 600; line-height: 1; }
+  .metric.hero .metric-val { color: var(--gold); }
+  .metric-sub { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+  .metric.hero .metric-sub { color: #5a5020; }
+  .metric-pill { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+  .pill-pass { background: var(--pass-bg); color: var(--pass); }
+  .pill-fail { background: var(--fail-bg); color: var(--fail); }
+  .pill-pending { background: var(--pending-bg); color: var(--pending); }
+  .pill-gold { background: rgba(232,197,71,0.15); color: var(--gold-dim); }
+
+  .panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+  .panel-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; }
+  .panel-subtitle { font-size: 11px; color: var(--text-muted); }
+  .panel-body { padding: 16px 18px; }
+
+  .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 768px) { .grid-main, .grid-half { grid-template-columns: 1fr; } }
+
+  .req-list { display: flex; flex-direction: column; }
+  .req-item { display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; text-decoration: none; color: inherit; }
+  .req-item:last-child { border-bottom: none; }
+  .req-item:hover { background: var(--off-white); }
+  .req-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .req-main { flex: 1; min-width: 0; }
+  .req-qr { font-size: 12px; font-weight: 500; font-family: 'Space Grotesk', sans-serif; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .req-style { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .req-tag { font-size: 10px; font-weight: 500; padding: 2px 9px; border-radius: 10px; flex-shrink: 0; white-space: nowrap; }
+  .req-date { font-size: 10px; color: var(--text-muted); flex-shrink: 0; min-width: 50px; text-align: right; }
+
+  .ring-wrap { display: flex; align-items: center; gap: 20px; padding: 4px 0; }
+  .ring-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .ring-legend-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+  .ring-swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .defect-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .defect-label { font-size: 11px; color: var(--text-secondary); min-width: 52px; }
+  .defect-track { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+  .defect-fill { height: 100%; border-radius: 3px; }
+  .defect-count { font-size: 12px; font-weight: 500; color: var(--text-primary); min-width: 26px; text-align: right; }
+
+  .vendor-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .vendor-row:last-child { border-bottom: none; }
+  .vendor-name { font-size: 12px; font-weight: 500; }
+  .vendor-meta { font-size: 11px; color: var(--text-muted); }
+  .vendor-bar { flex: 1; height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; margin: 0 14px; }
+  .vendor-bar-fill { height: 100%; border-radius: 2px; }
+  .vendor-rate { font-size: 13px; font-weight: 600; min-width: 38px; text-align: right; font-family: 'Space Grotesk', sans-serif; }
+
+  .tl { display: flex; flex-direction: column; }
+  .tl-item { display: flex; gap: 10px; }
+  .tl-spine { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; }
+  .tl-line { width: 1px; flex: 1; background: var(--border); margin: 3px 0; min-height: 18px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-content { padding-bottom: 14px; flex: 1; }
+  .tl-title { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+  .tl-meta { font-size: 11px; color: var(--text-muted); }
+
+  .chart-wrap { position: relative; height: 200px; width: 100%; }
+  .chart-legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .chart-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+  .chart-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+  .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 12px; }
+
+  .data-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(30,140,46,0.1); color: var(--pass); border: 1px solid rgba(30,140,46,0.2); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 500; margin-bottom: 1rem; }
+  .data-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--pass); }
+
+  footer { text-align: center; padding: 2rem 1rem; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 1rem; }
+  footer strong { color: var(--text-secondary); }
+
+  .fade-in { animation: fadeIn 0.4s ease both; }
+  .delay-1 { animation-delay: 0.05s; }
+  .delay-2 { animation-delay: 0.1s; }
+  .delay-3 { animation-delay: 0.15s; }
+  .delay-4 { animation-delay: 0.2s; }
+  .delay-5 { animation-delay: 0.25s; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="brand">
+    <div class="brand-logo"><span>TMRW</span></div>
+    <span class="brand-name">House of Brands</span>
+    <span class="brand-divider">·</span>
+    <span class="brand-sub">FI Inspection Hub</span>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div>Bewakoof Quality</div>
+    <span class="date-badge" id="live-date"></span>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="page-header fade-in">
+    <div>
+      <div class="page-title">Final Inspection Dashboard</div>
+      <div class="page-sub">Bewakoof sourcing tracker · QA inspection workflow</div>
+    </div>
+    <div class="header-actions">
+      <a href="https://www.appsheet.com/start/7ed06366-7765-4b73-95f9-0cb6ebb62cf0" target="_blank" class="btn btn-primary">Open in AppSheet ↗</a>
+    </div>
+  </div>
+
+  <div class="data-badge fade-in"><div class="data-dot"></div>Showing real data from Bewakoof Quality sheet</div>
+
+  <div class="appsheet-bar fade-in delay-1">
+    <div class="appsheet-bar-text">
+      <h3>Ready to raise a new FI request?</h3>
+      <p>Enter your QR (Request_UID) directly in the app — all details auto-fill from the sourcing tracker.</p>
+    </div>
+    <a href="https://www.appsheet.com/start/7ed06366-7765-4b73-95f9-0cb6ebb62cf0" target="_blank" class="btn btn-gold">Go to App ↗</a>
+  </div>
+
+  <div class="filter-bar fade-in delay-1">
+    <span class="filter-label">Filter:</span>
+    <button class="filter-chip active" onclick="setFilter('all',this)">All requests</button>
+    <button class="filter-chip" onclick="setFilter('pass',this)">Passed</button>
+    <button class="filter-chip" onclick="setFilter('fail',this)">Failed</button>
+    <button class="filter-chip" onclick="setFilter('pending',this)">Pending</button>
+  </div>
+
+  <div class="metrics-grid fade-in delay-2">
+    <div class="metric hero">
+      <div class="metric-label">Total Inspections</div>
+      <div class="metric-val" id="m-total">5</div>
+      <div class="metric-sub">FI records in system</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Pending</div>
+      <div class="metric-val" style="color:var(--pending);" id="m-pending">0</div>
+      <div class="metric-pill pill-pending" id="m-pending-label">Awaiting QA</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Pass rate</div>
+      <div class="metric-val" style="color:var(--pass);" id="m-pass">80%</div>
+      <div class="metric-pill pill-pass" id="m-pass-label">4 passed</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Fail rate</div>
+      <div class="metric-val" style="color:var(--fail);" id="m-fail">20%</div>
+      <div class="metric-pill pill-fail" id="m-fail-label">1 failed</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Avg Fulfilment</div>
+      <div class="metric-val" id="m-fulfilment">8.3%</div>
+      <div class="metric-pill pill-gold">Carton selection</div>
+    </div>
+  </div>
+
+  <div class="grid-main fade-in delay-3">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Inspection Requests</div>
+          <div class="panel-subtitle" id="req-subtitle">5 total records</div>
+        </div>
+      </div>
+      <div class="req-list" id="req-list"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Avg Fulfilment</div>
+          <div class="panel-subtitle">Carton selection rate</div>
+        </div>
+        <div class="panel-body">
+          <div class="ring-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#f0ece4" stroke-width="9"/>
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#E8C547" stroke-width="9"
+                stroke-dasharray="226" stroke-dashoffset="207"
+                stroke-linecap="round" transform="rotate(-90 45 45)" id="ring-arc"/>
+              <text x="45" y="42" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="16" font-weight="600" fill="#1A1A1A" id="ring-pct">8.3%</text>
+              <text x="45" y="54" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="#9c9690">avg</text>
+            </svg>
+            <div class="ring-legend">
+              <div class="ring-legend-row"><div class="ring-swatch" style="background:#E8C547;"></div>Selected cartons</div>
+              <div class="ring-legend-row"><div class="ring-swatch" style="background:#e8e4dc;"></div>Remaining stock</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="ring-sub-text">Avg across 5 inspections</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Defect Breakdown</div>
+          <div class="panel-subtitle" id="defect-total-label">1 total minor defect</div>
+        </div>
+        <div class="panel-body">
+          <div class="defect-row">
+            <div class="defect-label">Major</div>
+            <div class="defect-track"><div class="defect-fill" id="bar-major" style="width:0%;background:#e24b4a;"></div></div>
+            <div class="defect-count" id="cnt-major">0</div>
+          </div>
+          <div class="defect-row">
+            <div class="defect-label">Minor</div>
+            <div class="defect-track"><div class="defect-fill" id="bar-minor" style="width:20%;background:#E8C547;"></div></div>
+            <div class="defect-count" id="cnt-minor">1</div>
+          </div>
+          <div class="defect-row" style="margin-bottom:0;">
+            <div class="defect-label">Critical</div>
+            <div class="defect-track"><div class="defect-fill" id="bar-critical" style="width:0%;background:#8e44ad;"></div></div>
+            <div class="defect-count" id="cnt-critical">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-half fade-in delay-4">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Vendor Performance</div>
+        <div class="panel-subtitle">By pass rate</div>
+      </div>
+      <div class="panel-body" style="padding-top:8px;padding-bottom:8px;" id="vendor-list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Recent Activity</div>
+        <div class="panel-subtitle">Latest inspection log</div>
+      </div>
+      <div class="panel-body" style="padding-top:8px;padding-bottom:8px;">
+        <div class="tl" id="activity-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel fade-in delay-5" style="margin-bottom:1.5rem;">
+    <div class="panel-head">
+      <div class="panel-title">Inspection Results by Style</div>
+      <div class="panel-subtitle">Pass / Fail per style code</div>
+    </div>
+    <div class="panel-body">
+      <div class="chart-wrap"><canvas id="styleChart"></canvas></div>
+      <div class="chart-legend">
+        <div class="chart-legend-item"><div class="chart-swatch" style="background:#1A1A1A;"></div>Pass</div>
+        <div class="chart-legend-item"><div class="chart-swatch" style="background:#E8C547;"></div>Fail</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Built for <strong>TMRW: House of Brands</strong> · Bewakoof FI Inspection System ·
+  <a href="https://www.appsheet.com/start/7ed06366-7765-4b73-95f9-0cb6ebb62cf0" target="_blank" style="color:#b07d00;text-decoration:none;">Open AppSheet App ↗</a>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── REAL DATA from Bewakoof Quality.xlsx ──
+const fiData = [
+  { qr:'BK-1729319235082-1957', result:'PASS', style:'12SS24MOSHSTSKN06', product:'Flat Knit', colour:'Navy Blue', category:'SWEATER', vendor:'SHREE AAIJI KNITS', location:'MUMBAI', subType:'1st Inspection', major:0, minor:0, fulfilment:3.0, date:'Apr 1, 2026' },
+  { qr:'BK-1729319235079-8639', result:'FAIL', style:'OGSS24WSMHSTPKN27', product:'Short Top Tee', colour:'Black Beauty', category:'TOP & DRESS', vendor:'Fabrito Technologies Pvt', location:'GURUGRAM', subType:'1st Inspection', major:0, minor:0, fulfilment:0.0, date:'Recent' },
+  { qr:'BK-1729319235079-8639', result:'PASS', style:'OGSS24WSMHSTPKN27', product:'Short Top Tee', colour:'Black Beauty', category:'TOP & DRESS', vendor:'Fabrito Technologies Pvt', location:'GURUGRAM', subType:'1st Inspection', major:0, minor:1, fulfilment:23.0, date:'Recent' },
+  { qr:'BK-1729319235082-1957', result:'PASS', style:'12SS24MOSHSTSKN06', product:'Flat Knit', colour:'Navy Blue', category:'SWEATER', vendor:'SHREE AAIJI KNITS', location:'MUMBAI', subType:'1st Inspection', major:0, minor:0, fulfilment:0.0, date:'Apr 1, 2026' },
+  { qr:'BK-1729319235075-1352', result:'PASS', style:'OGSS24WSMHSTPKN27', product:'Short Top Tee', colour:'Mother of Pearl', category:'TOP & DRESS', vendor:'Fabrito Technologies Pvt', location:'GURUGRAM', subType:'1st Inspection', major:0, minor:0, fulfilment:7.0, date:'Recent' },
+];
+
+const makeYourFI = [
+  { qr:'BK-1729319235075-1352', style:'OGSS24WSMHSTPKN27', product:'Short Top Tee', colour:'Mother of Pearl', vendor:'Fabrito Technologies Pvt', result:'PASS', status:'Completed' },
+];
+
+const APP_URL = 'https://www.appsheet.com/start/7ed06366-7765-4b73-95f9-0cb6ebb62cf0';
+
+// ── DATE ──
+document.getElementById('live-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+
+// ── COMPUTE STATS ──
+const total = fiData.length;
+const passCount = fiData.filter(r=>r.result==='PASS').length;
+const failCount = fiData.filter(r=>r.result==='FAIL').length;
+const pendingCount = makeYourFI.filter(r=>r.status==='Pending').length;
+const passRate = Math.round((passCount/total)*100);
+const failRate = Math.round((failCount/total)*100);
+const avgFulfilment = (fiData.reduce((s,r)=>s+r.fulfilment,0)/total).toFixed(1);
+const totalMinor = fiData.reduce((s,r)=>s+r.minor,0);
+const totalMajor = fiData.reduce((s,r)=>s+r.major,0);
+
+// ── UPDATE METRICS ──
+document.getElementById('m-total').textContent = total;
+document.getElementById('m-pending').textContent = pendingCount;
+document.getElementById('m-pending-label').textContent = pendingCount === 0 ? 'All completed' : pendingCount + ' awaiting QA';
+document.getElementById('m-pass').textContent = passRate + '%';
+document.getElementById('m-pass-label').textContent = passCount + ' passed';
+document.getElementById('m-fail').textContent = failRate + '%';
+document.getElementById('m-fail-label').textContent = failCount + ' failed';
+document.getElementById('m-fulfilment').textContent = avgFulfilment + '%';
+
+// ── RING ──
+const pct = parseFloat(avgFulfilment);
+const circumference = 226;
+const offset = circumference - (pct / 100) * circumference;
+document.getElementById('ring-arc').setAttribute('stroke-dashoffset', Math.max(offset, 5));
+document.getElementById('ring-pct').textContent = avgFulfilment + '%';
+document.getElementById('ring-sub-text').textContent = 'Avg across ' + total + ' inspections';
+
+// ── DEFECTS ──
+const maxDefect = Math.max(totalMajor, totalMinor, 1);
+document.getElementById('cnt-major').textContent = totalMajor;
+document.getElementById('cnt-minor').textContent = totalMinor;
+document.getElementById('cnt-critical').textContent = 0;
+document.getElementById('bar-major').style.width = Math.round((totalMajor/maxDefect)*100) + '%';
+document.getElementById('bar-minor').style.width = Math.max(Math.round((totalMinor/maxDefect)*100), totalMinor > 0 ? 10 : 0) + '%';
+document.getElementById('defect-total-label').textContent = (totalMajor + totalMinor) + ' total defect' + (totalMajor + totalMinor !== 1 ? 's' : '') + ' logged';
+
+// ── FILTER + REQUEST LIST ──
+let activeFilter = 'all';
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function renderList() {
+  const dotColor = { PASS:'#3d9e44', FAIL:'#e24b4a', PENDING:'#E8C547' };
+  const tagMap = { PASS:{cls:'pill-pass',label:'Pass'}, FAIL:{cls:'pill-fail',label:'Fail'}, PENDING:{cls:'pill-pending',label:'Pending'} };
+
+  // Combine FI data + pending from MAKE YOUR FI
+  const allItems = [
+    ...fiData.map(r=>({ ...r, status: r.result })),
+    ...makeYourFI.filter(r=>r.status==='Pending').map(r=>({ ...r, result:'PENDING', status:'PENDING', major:0, minor:0, fulfilment:0 }))
+  ];
+
+  const filtered = activeFilter === 'all' ? allItems
+    : activeFilter === 'pass' ? allItems.filter(r=>r.result==='PASS')
+    : activeFilter === 'fail' ? allItems.filter(r=>r.result==='FAIL')
+    : allItems.filter(r=>r.result==='PENDING');
+
+  document.getElementById('req-subtitle').textContent = filtered.length + ' record' + (filtered.length !== 1 ? 's' : '') + ' shown';
+
+  const list = document.getElementById('req-list');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state">No records in this category</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(r => {
+    const t = tagMap[r.result] || tagMap['PENDING'];
+    return `<a class="req-item" href="${APP_URL}" target="_blank">
+      <div class="req-dot" style="background:${dotColor[r.result]||'#E8C547'};"></div>
+      <div class="req-main">
+        <div class="req-qr">${r.qr}</div>
+        <div class="req-style">${r.product} · ${r.colour} · ${r.vendor}</div>
+      </div>
+      <span class="req-tag metric-pill ${t.cls}">${t.label}</span>
+      <div class="req-date">${r.date||'—'}</div>
+    </a>`;
+  }).join('');
+}
+renderList();
+
+// ── VENDOR PERFORMANCE ──
+const vendorMap = {};
+fiData.forEach(r => {
+  if (!vendorMap[r.vendor]) vendorMap[r.vendor] = { total:0, pass:0, location:'' };
+  vendorMap[r.vendor].total++;
+  if (r.result === 'PASS') vendorMap[r.vendor].pass++;
+  vendorMap[r.vendor].location = r.location;
+});
+
+const vendors = Object.entries(vendorMap).map(([name,v])=>({
+  name, total: v.total, pass: v.pass, location: v.location,
+  rate: Math.round((v.pass/v.total)*100)
+})).sort((a,b)=>b.rate-a.rate);
+
+const vList = document.getElementById('vendor-list');
+vList.innerHTML = vendors.map(v => {
+  const rateColor = v.rate >= 80 ? 'var(--pass)' : v.rate >= 60 ? 'var(--pending)' : 'var(--fail)';
+  const barColor = v.rate >= 80 ? '#3d9e44' : v.rate >= 60 ? '#E8C547' : '#e24b4a';
+  return `<div class="vendor-row">
+    <div style="min-width:0;flex:1;">
+      <div class="vendor-name">${v.name}</div>
+      <div class="vendor-meta">${v.total} FI · ${v.location}</div>
+    </div>
+    <div class="vendor-bar"><div class="vendor-bar-fill" style="width:${v.rate}%;background:${barColor};"></div></div>
+    <div class="vendor-rate" style="color:${rateColor};">${v.rate}%</div>
+  </div>`;
+}).join('');
+
+// ── ACTIVITY LOG ──
+const dotColor = { PASS:'#3d9e44', FAIL:'#e24b4a', PENDING:'#E8C547' };
+const actLog = document.getElementById('activity-log');
+const recent = [...fiData].slice(0,5);
+actLog.innerHTML = recent.map((r,i) => `
+  <div class="tl-item">
+    <div class="tl-spine">
+      <div class="tl-dot" style="background:${dotColor[r.result]};"></div>
+      ${i < recent.length-1 ? '<div class="tl-line"></div>' : ''}
+    </div>
+    <div class="tl-content">
+      <div class="tl-title">${r.qr} — ${r.result}</div>
+      <div class="tl-meta">${r.product} · ${r.colour} · ${r.date}</div>
+    </div>
+  </div>`).join('');
+
+// ── STYLE CHART ──
+const styleMap = {};
+fiData.forEach(r => {
+  const s = r.style.length > 18 ? r.style.slice(0,18)+'…' : r.style;
+  if (!styleMap[s]) styleMap[s] = { pass:0, fail:0 };
+  if (r.result === 'PASS') styleMap[s].pass++;
+  else styleMap[s].fail++;
+});
+const styleLabels = Object.keys(styleMap);
+const passData = styleLabels.map(s=>styleMap[s].pass);
+const failData = styleLabels.map(s=>styleMap[s].fail);
+const chartHeight = Math.max(styleLabels.length * 50 + 60, 200);
+document.querySelector('.chart-wrap').style.height = chartHeight + 'px';
+
+new Chart(document.getElementById('styleChart'), {
+  type: 'bar',
+  data: {
+    labels: styleLabels,
+    datasets: [
+      { label:'Pass', data: passData, backgroundColor:'#1A1A1A', borderRadius:4, stack:'s' },
+      { label:'Fail', data: failData, backgroundColor:'#E8C547', borderRadius:4, stack:'s' }
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend:{display:false}, tooltip:{mode:'index',intersect:false} },
+    scales: {
+      x: { stacked:true, grid:{color:'#f0ece4'}, border:{display:false}, ticks:{font:{size:11,family:'DM Sans'},color:'#9c9690',stepSize:1} },
+      y: { stacked:true, grid:{display:false}, border:{display:false}, ticks:{font:{size:11,family:'DM Sans'},color:'#9c9690'} }
+    }
+  }
+});
+</script>
+</body>
+</html>
